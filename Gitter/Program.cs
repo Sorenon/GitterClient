@@ -70,7 +70,7 @@ public static class Program
             {
                 if (row.commit == null)
                 {
-                    return row.ty ? "[underline]Exit[/]" : "[underline]Create Post[/]";
+                    return row.ty ? "[underline]Exit[/]" : "[underline]Make Branch Ready For PR[/]";
                 }
 
                 var c = row.commit;
@@ -191,7 +191,7 @@ public static class Program
 
         var user = Task.Run(() => { return client.User.Current(); }).Result!;
 
-        AnsiConsole.WriteLine("Write your post title");
+        AnsiConsole.WriteLine("Making active branch dirty...");
 
         //var title = Console.ReadLine();
 
@@ -215,61 +215,66 @@ public static class Program
 
         //var body = string.Join("\n", lines);
 
-        //File.WriteAllText(Path.Combine(path, user.Id.ToString()), Guid.NewGuid().ToString());
+        File.WriteAllText(Path.Combine(path, user.Id.ToString()), Guid.NewGuid().ToString());
 
-        //var process = new Process
+        var process = new Process
+        {
+            StartInfo = new ProcessStartInfo
+            {
+                FileName = "git",
+                Arguments = "add .",
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                CreateNoWindow = true,
+                WorkingDirectory = path
+            }
+        };
+
+        process.Start();
+        process.WaitForExit();
+
+        process = new Process
+        {
+            StartInfo = new ProcessStartInfo
+            {
+                FileName = "git",
+                Arguments = "commit -m \"###\"",
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                CreateNoWindow = true,
+                WorkingDirectory = path
+            }
+        };
+
+        process.Start();
+        process.WaitForExit();
+
+        process = new Process
+        {
+            StartInfo = new ProcessStartInfo
+            {
+                FileName = "git",
+                Arguments = "push",
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                CreateNoWindow = true,
+                WorkingDirectory = path
+            }
+        };
+
+        process.Start();
+        process.WaitForExit();
+
+        //var res = Task.Run(() =>
         //{
-        //    StartInfo = new ProcessStartInfo
-        //    {
-        //        FileName = "git",
-        //        Arguments = "add .",
-        //        UseShellExecute = false,
-        //        RedirectStandardOutput = true,
-        //        CreateNoWindow = true,
-        //        WorkingDirectory = path
-        //    }
-        //};
+        //    return client.PullRequest.Create(
+        //        "sorenon",
+        //        "gitter-testing",
+        //        new Octokit.NewPullRequest("This is a title", "oh-my", "main")
+        //    );
+        //});
 
-        //process.Start();
-        //process.WaitForExit();
-
-        //process = new Process
-        //{
-        //    StartInfo = new ProcessStartInfo
-        //    {
-        //        FileName = "git",
-        //        Arguments = "commit -m \"###\"",
-        //        UseShellExecute = false,
-        //        RedirectStandardOutput = true,
-        //        CreateNoWindow = true,
-        //        WorkingDirectory = path
-        //    }
-        //};
-
-        //process.Start();
-        //process.WaitForExit();
-
-        //process = new Process
-        //{
-        //    StartInfo = new ProcessStartInfo
-        //    {
-        //        FileName = "git",
-        //        Arguments = "push",
-        //        UseShellExecute = false,
-        //        RedirectStandardOutput = true,
-        //        CreateNoWindow = true,
-        //        WorkingDirectory = path
-        //    }
-        //};
-
-        //process.Start();
-        //process.WaitForExit();
-
-        var res = Task.Run(() => client.PullRequest.Create(
-                "Sorenon",
-                "gitter-testing",
-                new Octokit.NewPullRequest("This is a title", "oh-my", "main")
-            ));
+        AnsiConsole.WriteLine("Branch made dirty, hop onto Github to make the pull request!");
 
         while (true)
         {

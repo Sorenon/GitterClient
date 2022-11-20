@@ -1,7 +1,10 @@
 ﻿using Gitter;
 using LibGit2Sharp;
+using LibGit2Sharp.Handlers;
 using Spectre.Console;
+using System.Diagnostics;
 using System.Globalization;
+using System.IO;
 
 public static class Program
 {
@@ -10,7 +13,7 @@ public static class Program
         var path = args[0];
         using (var repo = new Repository(path))
         {
-            Sync(repo);
+            var upstream = Sync(repo);
 
             WriteLogo();
             AnsiConsole.Status().Start("Loading...", ctx =>
@@ -21,11 +24,11 @@ public static class Program
                 //Thread.Sleep(2000);
             });
 
-            Timeline(repo, path);
+            Timeline(repo, path, upstream);
         }
     }
 
-    public static void Sync(Repository repo)
+    public static Remote Sync(Repository repo)
     {
         //DEAR GOD DO NOT RUN THIS ON A NORMAL GIT REPO, YOU WILL LOOSE ALL YOUR LOCAL CHANGES!!!
         var upstream = repo.Network.Remotes["origin"]!;
@@ -40,9 +43,10 @@ public static class Program
         var main = repo.Branches[upstream.Name + "/main"];
         repo.Reset(ResetMode.Hard, main.Tip);
 
+        return upstream;
     }
 
-    public static void Timeline(Repository repo, string path)
+    public static void Timeline(Repository repo, string path, Remote upstream)
     {
         var rows = new List<TimelineRow> { new TimelineRow { commit = null, ty = false } };
 
@@ -59,7 +63,7 @@ public static class Program
             WriteLogo();
 
             var selected_commit = AnsiConsole.Prompt(new SelectionPrompt<TimelineRow>()
-            .PageSize(10)
+            .PageSize(20)
             .MoreChoicesText("[grey](Select messages with arrow keys)[/]")
             .AddChoices(rows)
             .UseConverter((row) =>
@@ -74,7 +78,7 @@ public static class Program
                 string val = string.Format(
                     "[yellow]{0}: ({1})[/] {2}",
                     c.Author.Name,
-                    c.Author.When.ToString("yyyy-mm-dd HH:MM", CultureInfo.InvariantCulture),
+                    c.Author.When.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture),
                     c.MessageShort
                     );
 
@@ -95,7 +99,7 @@ public static class Program
                 }
                 else
                 {
-                    RunCreatePost(repo, path);
+                    RunCreatePost(repo, upstream, path);
                 }
             }
             else
@@ -131,7 +135,7 @@ public static class Program
             c.Author.Name,
             c.Author.Email,
             c.Author.When.ToString("dddd, dd MMMM yyyy", CultureInfo.InvariantCulture),
-            c.Author.When.ToString("HH:MM:ss", CultureInfo.InvariantCulture),
+            c.Author.When.ToString("HH:mm:ss", CultureInfo.InvariantCulture),
             c.Id
         ));
 
@@ -158,7 +162,7 @@ public static class Program
             if (lines[i].StartsWith("!"))
             {
                 var img = new CanvasImage(Path.Combine(path, "assets", lines[i][1..]).Trim());
-                img.MaxWidth(32);
+                img.MaxWidth(48);
                 AnsiConsole.Write(img);
                 continue;
             }
@@ -177,14 +181,95 @@ public static class Program
         }
     }
 
-    public static void RunCreatePost(Repository repo, string path)
+    public static void RunCreatePost(Repository repo, Remote upstream, string path)
     {
         AnsiConsole.Clear();
 
         WriteLogo();
 
-        AnsiConsole.MarkupLine("[red]Not Yet Implimented[/]");
-        AnsiConsole.MarkupLine("Manual posts only (for now?)");
+        var client = Github.CreateClient();
+
+        var user = Task.Run(() => { return client.User.Current(); }).Result!;
+
+        AnsiConsole.WriteLine("Write your post title");
+
+        //var title = Console.ReadLine();
+
+        //AnsiConsole.WriteLine("Write your post body (create a blank line with `:q` to end) (this is also a good time to add any assets to the repo)");
+
+        //var lines = new List<string>();
+
+        //while (true)
+        //{
+        //    var line = Console.ReadLine();
+
+        //    if (line == ":q" || line == null)
+        //    {
+        //        break;
+        //    }
+        //    else
+        //    {
+        //        lines.Add(line);
+        //    }
+        //}
+
+        //var body = string.Join("\n", lines);
+
+        //File.WriteAllText(Path.Combine(path, user.Id.ToString()), Guid.NewGuid().ToString());
+
+        //var process = new Process
+        //{
+        //    StartInfo = new ProcessStartInfo
+        //    {
+        //        FileName = "git",
+        //        Arguments = "add .",
+        //        UseShellExecute = false,
+        //        RedirectStandardOutput = true,
+        //        CreateNoWindow = true,
+        //        WorkingDirectory = path
+        //    }
+        //};
+
+        //process.Start();
+        //process.WaitForExit();
+
+        //process = new Process
+        //{
+        //    StartInfo = new ProcessStartInfo
+        //    {
+        //        FileName = "git",
+        //        Arguments = "commit -m \"###\"",
+        //        UseShellExecute = false,
+        //        RedirectStandardOutput = true,
+        //        CreateNoWindow = true,
+        //        WorkingDirectory = path
+        //    }
+        //};
+
+        //process.Start();
+        //process.WaitForExit();
+
+        //process = new Process
+        //{
+        //    StartInfo = new ProcessStartInfo
+        //    {
+        //        FileName = "git",
+        //        Arguments = "push",
+        //        UseShellExecute = false,
+        //        RedirectStandardOutput = true,
+        //        CreateNoWindow = true,
+        //        WorkingDirectory = path
+        //    }
+        //};
+
+        //process.Start();
+        //process.WaitForExit();
+
+        var res = Task.Run(() => client.PullRequest.Create(
+                "Sorenon",
+                "gitter-testing",
+                new Octokit.NewPullRequest("This is a title", "oh-my", "main")
+            ));
 
         while (true)
         {

@@ -1,4 +1,5 @@
-﻿using LibGit2Sharp;
+﻿using Gitter;
+using LibGit2Sharp;
 using Spectre.Console;
 using System.Collections;
 using System.Globalization;
@@ -25,7 +26,8 @@ public static class Program
         }
     }
 
-    public static void Sync(Repository repo) {
+    public static void Sync(Repository repo)
+    {
         //DEAR GOD DO NOT RUN THIS ON A NORMAL GIT REPO, YOU WILL LOOSE ALL YOUR LOCAL CHANGES!!!
         var upstream = repo.Network.Remotes["origin"]!;
 
@@ -43,22 +45,32 @@ public static class Program
 
     public static void Timeline(Repository repo, string path)
     {
-        while (true) {
-            AnsiConsole.Clear();
-            var commits = repo.Commits.Take(50).ToList();
-            commits.Add(null);
+        var rows = new List<TimelineRow> { new TimelineRow { commit = null, ty = false } };
 
+        foreach (var c in repo.Commits.Take(50))
+        {
+            rows.Add(new TimelineRow { commit = c, ty = false });
+        }
+
+        rows.Add(new TimelineRow { commit = null, ty = true });
+
+        while (true)
+        {
+            AnsiConsole.Clear();
             WriteLogo();
 
-            var selected_commit = AnsiConsole.Prompt(new SelectionPrompt<Commit>()
+            var selected_commit = AnsiConsole.Prompt(new SelectionPrompt<TimelineRow>()
             .PageSize(10)
             .MoreChoicesText("[grey](Select messages with arrow keys)[/]")
-            .AddChoices(commits)
-            .UseConverter((c) => {
-                if (c == null)
+            .AddChoices(rows)
+            .UseConverter((row) =>
+            {
+                if (row.commit == null)
                 {
-                    return "Exit";
+                    return row.ty ? "[underline]Exit[/]" : "[underline]Create Post[/]";
                 }
+
+                var c = row.commit;
 
                 string val = string.Format(
                     "[yellow]{0}: ({1})[/] {2}",
@@ -75,13 +87,19 @@ public static class Program
                 return val;
             }));
 
-            if (selected_commit == null)
+            if (selected_commit.commit == null)
             {
-                AnsiConsole.Clear();
-                return;
+                if (selected_commit.ty)
+                {
+                    AnsiConsole.Clear();
+                    return;
+                }
+                else {
+                    throw new Exception("Not done yet :(");
+                }
             }
 
-            WriteCommit(selected_commit, path);
+            WriteCommit(selected_commit.commit, path);
         }
     }
 
@@ -121,8 +139,10 @@ public static class Program
         {
             AnsiConsole.WriteLine(lines[0]);
             AnsiConsole.Write(new Rule().RuleStyle(Style.Parse("grey")));
+            AnsiConsole.WriteLine();
         }
-        else { 
+        else
+        {
             AnsiConsole.MarkupLine(string.Format("[underline]{0}[/]", lines[0]));
         }
 
@@ -133,7 +153,8 @@ public static class Program
                 AnsiConsole.MarkupLine(string.Format("[aqua]{0}[/]", lines[i]));
                 continue;
             }
-            if (lines[i].StartsWith("!")) {
+            if (lines[i].StartsWith("!"))
+            {
                 var img = new CanvasImage(Path.Combine(path, "assets", lines[i][1..]).Trim());
                 img.MaxWidth(32);
                 AnsiConsole.Write(img);
@@ -142,10 +163,12 @@ public static class Program
             AnsiConsole.WriteLine(lines[i]);
         }
 
-        while (true) {
+        while (true)
+        {
             var key = Console.ReadKey();
 
-            if (key.KeyChar != '\0' || key.Key == ConsoleKey.Backspace) {
+            if (key.KeyChar != '\0' || key.Key == ConsoleKey.Backspace)
+            {
                 AnsiConsole.Clear();
                 return;
             }

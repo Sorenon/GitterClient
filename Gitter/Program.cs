@@ -1,7 +1,6 @@
 ﻿using Gitter;
 using LibGit2Sharp;
 using Spectre.Console;
-using System.Collections;
 using System.Globalization;
 
 public static class Program
@@ -94,12 +93,15 @@ public static class Program
                     AnsiConsole.Clear();
                     return;
                 }
-                else {
-                    throw new Exception("Not done yet :(");
+                else
+                {
+                    RunCreatePost(repo, path);
                 }
             }
-
-            WriteCommit(selected_commit.commit, path);
+            else
+            {
+                WriteCommit(selected_commit.commit, path);
+            }
         }
     }
 
@@ -162,6 +164,27 @@ public static class Program
             }
             AnsiConsole.WriteLine(lines[i]);
         }
+
+        while (true)
+        {
+            var key = Console.ReadKey();
+
+            if (key.KeyChar != '\0' || key.Key == ConsoleKey.Backspace)
+            {
+                AnsiConsole.Clear();
+                return;
+            }
+        }
+    }
+
+    public static void RunCreatePost(Repository repo, string path)
+    {
+        AnsiConsole.Clear();
+
+        WriteLogo();
+
+        AnsiConsole.MarkupLine("[red]Not Yet Implimented[/]");
+        AnsiConsole.MarkupLine("Manual posts only (for now?)");
 
         while (true)
         {
